@@ -1,0 +1,106 @@
+asyncapi: 2.2.0
+info:
+  title: Letter API
+  version: 1.0.0
+  description: ""
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
+servers:
+  production:
+    url: 'api.arch.homework:{port}'
+    protocol: mqtt
+    description: Test broker
+    variables:
+      port:
+        description: ""
+        default: '1883'
+        enum:
+          - '1883'
+          - '8883'
+
+defaultContentType: application/json
+channels:
+  'api.arch.homework/1/0/event/{letterId}':
+    description: The topic on which measured values may be produced and consumed.
+    parameters:
+      letterId:
+        $ref: '#/components/parameters/letterId'
+    subscribe:
+      summary: ""
+      operationId: receiveLightMeasurement
+      traits:
+        - $ref: '#/components/operationTraits/kafka'
+      message:
+        $ref: '#/components/messages/message'
+  'smartylighting/streetlights/1/0/action/{letterId}/message':
+    parameters:
+      letterId:
+        $ref: '#/components/parameters/letterId'
+    publish:
+      operationId: turnOn
+      traits:
+        - $ref: '#/components/operationTraits/kafka'
+      message:
+        $ref: '#/components/messages/letter'
+
+  'smartylighting/streetlights/1/0/action/{letterId}/':
+    parameters:
+      letterId:
+        $ref: '#/components/parameters/letterId'
+    publish:
+      operationId: dimLight
+      traits:
+        - $ref: '#/components/operationTraits/kafka'
+      message:
+        $ref: '#/components/messages/letter'
+components:
+  messages:
+    message:
+      name: message
+      title: message
+      summary: ""
+      contentType: application/json
+      traits:
+        - $ref: '#/components/messageTraits/commonHeaders'
+      payload:
+        $ref: '#/components/schemas/message/Payload'
+
+    messagePayload:
+      type: object
+      properties:
+        lumens:
+          type: integer
+          minimum: 0
+          description: Light intensity measured in lumens.
+        sentAt:
+          $ref: '#/components/schemas/sentAt'
+
+    sentAt:
+      type: string
+      format: date-time
+      description: Date and time when the message was sent.
+
+
+    openIdConnectWellKnown:
+      type: openIdConnect
+      openIdConnectUrl: 'https://authserver.example/.well-known'
+  parameters:
+    streetlightId:
+      description: The ID of the streetlight.
+      schema:
+        type: string
+  messageTraits:
+    commonHeaders:
+      headers:
+        type: object
+        properties:
+          my-app-header:
+            type: integer
+            minimum: 0
+            maximum: 100
+  operationTraits:
+    kafka:
+      bindings:
+        kafka:
+          clientId: my-app-id
